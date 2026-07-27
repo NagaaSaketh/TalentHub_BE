@@ -28,6 +28,9 @@ const applicantSchema = new mongoose.Schema(
         yearsOfExp: Number,
       },
     ],
+    location: {
+      type: String,
+    },
     skills: [
       {
         type: String,

@@ -4,10 +4,28 @@ const bcrypt = require("bcrypt");
 const authRouter = express.Router();
 const userAuth = require("../middleware/auth");
 const User = require("../models/User");
+const Applicant = require("../models/Applicant");
+const Recruiter = require("../models/Recruiter");
 
 authRouter.post("/register", async (req, res) => {
   try {
-    const { fullname, email, password, role } = req.body;
+    const {
+      fullname,
+      email,
+      password,
+      role,
+      education,
+      experience,
+      bio,
+      photo,
+      resume,
+      skills,
+      location,
+      companyName,
+      companyLogo,
+      website,
+      aboutCompany,
+    } = req.body;
 
     const existingUser = await User.findOne({ email });
 
@@ -25,6 +43,27 @@ authRouter.post("/register", async (req, res) => {
     });
 
     await user.save();
+
+    if (role === "applicant") {
+      await Applicant.create({
+        user: user._id,
+        education,
+        experience,
+        skills,
+        resume,
+        location,
+      });
+    }
+
+    if (role === "recruiter") {
+      await Recruiter.create({
+        user: user._id,
+        companyName,
+        companyLogo,
+        website,
+        aboutCompany,
+      });
+    }
     res.status(201).json({ message: "User registration successfully!", user });
   } catch (err) {
     res

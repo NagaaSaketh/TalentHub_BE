@@ -1,8 +1,12 @@
 const mongoose = require("mongoose");
-const { validate } = require("./User");
 
 const jobSchema = new mongoose.Schema(
   {
+    recruiter: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     title: {
       type: String,
       required: true,
@@ -17,9 +21,23 @@ const jobSchema = new mongoose.Schema(
       required: true,
     },
     salary: {
-      type: Number,
-      required: true,
-      min: 1,
+      min: {
+        type: Number,
+        required: true,
+        min: 1,
+      },
+      max: {
+        type: Number,
+        required: true,
+        min: 1,
+        validate: {
+          validator: function (value) {
+            return value >= this.salary.min;
+          },
+          message:
+            "Maximum salary must be greater than or equal to minimum salary.",
+        },
+      },
     },
     description: {
       type: String,
@@ -39,7 +57,7 @@ const jobSchema = new mongoose.Schema(
         required: true,
       },
     ],
-    deadLine: {
+    deadline: {
       type: Date,
       required: true,
       validate: {
@@ -53,10 +71,18 @@ const jobSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    remote: {
+    isRemote: {
+      type: Boolean,
+      default: false,
+    },
+    isArchived: {
       type: Boolean,
       default: false,
     },
   },
   { timestamps: true },
 );
+
+const Job = mongoose.model("Job", jobSchema);
+
+module.exports = Job;

@@ -19,3 +19,7 @@ const recruiterSchema = new mongoose.Schema({
     type: String,
   },
 });
+
+const Recruiter = mongoose.model('Recruiter',recruiterSchema)
+
+module.exports = Recruiter;
