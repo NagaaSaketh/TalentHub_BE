@@ -4,6 +4,8 @@ const userAuth = require("../middleware/auth");
 const authorize = require("../middleware/authorize");
 const Job = require("../models/Jobs");
 
+// API route to create a job
+
 recruiterRouter.post(
   "/jobs",
   userAuth,
@@ -50,6 +52,8 @@ recruiterRouter.post(
   },
 );
 
+// API route to update job details
+
 recruiterRouter.put(
   "/jobs/:id",
   userAuth,
@@ -58,7 +62,10 @@ recruiterRouter.put(
     try {
       const loggedInUser = req.user;
       const jobId = req.params.id;
-      const job = await Job.findOne({ _id: jobId, recruiter: loggedInUser._id });
+      const job = await Job.findOne({
+        _id: jobId,
+        recruiter: loggedInUser._id,
+      });
       if (!job) {
         return res.status(404).json({ message: "Job not found." });
       }
@@ -99,12 +106,36 @@ recruiterRouter.put(
   },
 );
 
-recruiterRouter.patch("/jobs/:id",userAuth,authorize("recruiter"),async(req,res)=>{
-    try{
+// API route to archive a job
+recruiterRouter.put(
+  "/jobs/:id/archive",
+  userAuth,
+  authorize("recruiter"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+      const jobId = req.params.id;
+      const job = await Job.findOne({
+        _id: jobId,
+        recruiter: loggedInUser._id,
+      });
+      if (!job) {
+        return res.status(404).json({ message: "No job found!" });
+      }
 
-    }catch(err){
+      const { isArchived } = req.body;
 
+      if (isArchived !== undefined) job.isArchived = !job.isArchived;
+      await job.save();
+
+      res.status(200).json({ message: "Job archive status updated.", job });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ message: "Something went wrong!", error: err.message });
     }
-})
+  },
+);
+
 
 module.exports = recruiterRouter;

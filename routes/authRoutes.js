@@ -7,6 +7,8 @@ const User = require("../models/User");
 const Applicant = require("../models/Applicant");
 const Recruiter = require("../models/Recruiter");
 
+// API route to register 
+
 authRouter.post("/register", async (req, res) => {
   try {
     const {
@@ -72,6 +74,8 @@ authRouter.post("/register", async (req, res) => {
   }
 });
 
+// API route to login
+
 authRouter.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -100,10 +104,14 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
+
+// API route to logout
 authRouter.post("/logout", userAuth, (req, res) => {
   res.clearCookie("token");
   res.status(200).json({ message: "Logged out successfully!" });
 });
+
+// API route to get current loggedin user details
 
 authRouter.get("/me", userAuth, async (req, res) => {
   try {

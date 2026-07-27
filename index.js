@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const authRouter = require("./routes/authRoutes");
 const recruiterRouter = require("./routes/recruiterRoutes");
+const applicantRouter = require("./routes/applicantRoutes");
 const app = express();
 
 app.use(express.json());
@@ -12,6 +13,7 @@ app.use(cookieParser());
 
 app.use("/", authRouter);
 app.use("/", recruiterRouter);
+app.use("/", applicantRouter);
 
 initialiseDB();
 
