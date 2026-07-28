@@ -15,10 +15,72 @@ const applicantRouter = express.Router();
 applicantRouter.get(
   "/jobs",
   userAuth,
-  authorize("applicant", "recruiter"),
+  authorize("applicant"),
   async (req, res) => {
     try {
-      const jobs = await Job.find({ isArchived: false });
+      const {
+        minSalary,
+        maxSalary,
+        sort,
+        requiredExp,
+        location,
+        jobType,
+        isRemote,
+      } = req.query;
+
+      const filter = { isArchived: false };
+
+      if (location) {
+        filter.location = {
+          $regex: location,
+          $options: "i",
+        };
+      }
+
+      if (jobType) {
+        filter.jobType = jobType;
+      }
+
+      if (requiredExp) {
+        filter.requiredExp = { $gte: Number(requiredExp) };
+      }
+
+      if (isRemote !== undefined) {
+        filter.isRemote = isRemote === "true";
+      }
+
+      if (minSalary || maxSalary) {
+        filter["salary.min"] = {};
+
+        if (minSalary) {
+          filter["salary.min"].$gte = Number(minSalary);
+        }
+
+        if (maxSalary) {
+          filter["salary.max"] = { $lte: Number(maxSalary) };
+        }
+      }
+      let query = Job.find(filter);
+
+      switch (sort) {
+        case "salary-asc":
+          query = query.sort({ "salary.min": 1 });
+          break;
+
+        case "salary-desc":
+          query = query.sort({ "salary.max": -1 });
+          break;
+
+        case "latest":
+          query = query.sort({ createdAt: -1 });
+          break;
+
+        default:
+          query = query.sort({ createdAt: -1 });
+      }
+
+      const jobs = await query;
+
       return res.status(200).json(jobs);
     } catch (err) {
       res
