@@ -8,8 +8,8 @@ const cors = require("cors");
 const authRouter = require("./routes/authRoutes");
 const recruiterRouter = require("./routes/recruiterRoutes");
 const applicantRouter = require("./routes/applicantRoutes");
+const aiRouter = require("./routes/aiRoutes");
 const app = express();
-
 
 app.use(
   cors({
@@ -24,6 +24,7 @@ app.use(cookieParser());
 app.use("/", authRouter);
 app.use("/", recruiterRouter);
 app.use("/", applicantRouter);
+app.use("/", aiRouter);
 
 initialiseDB();
 
