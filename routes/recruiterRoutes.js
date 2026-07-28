@@ -155,10 +155,10 @@ recruiterRouter.get(
       if (!job) {
         return res.status(404).json({ message: "No job found!" });
       }
-      const jobApplications = await Application.find({ job: jobId }).populate(
-        "applicant",
-        "fullname email",
-      );
+      const jobApplications = await Application.find({ job: jobId }).populate({
+        path: "applicant",
+        populate: { path: "user", select: "fullname email" },
+      });
       if (jobApplications.length === 0) {
         res.status(404).json({ message: "No applicants found for this job" });
       }
@@ -198,13 +198,17 @@ recruiterRouter.put(
         });
       }
 
+      if (application.status === "Shortlisted") {
+        return res.status(400).json({
+          message: "Applicant is already shortlisted.",
+        });
+      }
+
       if (application.status === "Withdrawn") {
         return res.status(400).json({
           message: "Cannot shortlist a withdrawn application.",
         });
       }
-
-      application.status = "Shortlisted";
 
       application.status = "Shortlisted";
       await application.save();
@@ -242,6 +246,12 @@ recruiterRouter.put(
       ) {
         return res.status(403).json({
           message: "You are not authorised to reject applicants for this job",
+        });
+      }
+
+      if (application.status === "Rejected") {
+        return res.status(400).json({
+          message: "Applicant is already rejected.",
         });
       }
 

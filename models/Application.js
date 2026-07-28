@@ -4,7 +4,7 @@ const applicationSchema = new mongoose.Schema(
   {
     applicant: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Applicant",
       required: true,
     },
 
