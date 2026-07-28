@@ -115,9 +115,18 @@ authRouter.post("/logout", userAuth, (req, res) => {
 
 authRouter.get("/me", userAuth, async (req, res) => {
   try {
+    let profile = null;
+
+    if(req.user.role === "applicant"){
+      profile = await Applicant.findOne({user:req.user._id})
+    }else if(req.user.role === "recruiter"){
+      profile = await Recruiter.findOne({user:req.user._id})
+    }
+
     res.status(200).json({
       message: "User authenticated!",
       user: req.user,
+      profile
     });
   } catch (err) {
     res.status(500).json({

@@ -244,4 +244,39 @@ applicantRouter.put(
   },
 );
 
+// API route to edit profile
+
+applicantRouter.patch(
+  "/applicant/profile",
+  userAuth,
+  authorize("applicant"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+      const { bio, education, experience, location, skills } = req.body;
+
+      const applicant = await Applicant.findOne({ user: loggedInUser._id });
+
+      if (!applicant) {
+        return res.status(404).json({ message: "No profile found!" });
+      }
+
+      if (bio !== undefined) applicant.bio = bio;
+      if (education !== undefined) applicant.education = education;
+      if (experience !== undefined) applicant.experience = experience;
+      if (location !== undefined) applicant.location = location;
+      if (skills !== undefined) applicant.skills = skills;
+      await applicant.save();
+      res
+        .status(200)
+        .json({ message: "Profile updated successfully!", applicant });
+    } catch (err) {
+      return res.status(500).json({
+        message: "Something went wrong!",
+        error: err.message,
+      });
+    }
+  },
+);
+
 module.exports = applicantRouter;

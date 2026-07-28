@@ -4,6 +4,7 @@ const userAuth = require("../middleware/auth");
 const authorize = require("../middleware/authorize");
 const Job = require("../models/Jobs");
 const Application = require("../models/Application");
+const Recruiter = require("../models/Recruiter");
 
 // API route to create a job
 
@@ -266,6 +267,37 @@ recruiterRouter.put(
       res
         .status(200)
         .json({ message: "Applicant rejected successfully!", application });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ message: "Something went wrong!", error: err.message });
+    }
+  },
+);
+
+// API route to edit profile
+recruiterRouter.patch(
+  "/recruiter/profile",
+  userAuth,
+  authorize("recruiter"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+      const { companyName, website, aboutCompany } = req.body;
+      const recruiter = await Recruiter.findOne({ user: loggedInUser._id });
+
+      if (!recruiter) {
+        return res.status(404).json({ message: "No recruiter found!" });
+      }
+
+      if (companyName !== undefined) recruiter.companyName = companyName;
+      if (website !== undefined) recruiter.website = website;
+      if (aboutCompany !== undefined) recruiter.aboutCompany = aboutCompany;
+
+      await recruiter.save();
+      res
+        .status(200)
+        .json({ message: "Profile updated successfully", recruiter });
     } catch (err) {
       res
         .status(500)
