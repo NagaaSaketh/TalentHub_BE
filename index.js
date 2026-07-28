@@ -1,3 +1,5 @@
+require("dotenv").config();
+const fs = require("fs");
 const express = require("express");
 const { initialiseDB } = require("./db/db.connect");
 const jwt = require("jsonwebtoken");
@@ -7,6 +9,14 @@ const authRouter = require("./routes/authRoutes");
 const recruiterRouter = require("./routes/recruiterRoutes");
 const applicantRouter = require("./routes/applicantRoutes");
 const app = express();
+
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 app.use(cookieParser());

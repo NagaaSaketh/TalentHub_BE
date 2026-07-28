@@ -5,6 +5,9 @@ const authorize = require("../middleware/authorize");
 const Job = require("../models/Jobs");
 const Application = require("../models/Application");
 const Recruiter = require("../models/Recruiter");
+const upload = require("../middleware/upload");
+const fs = require("fs");
+const cloudinary = require("../config/cloudinary");
 
 // API route to create a job
 
@@ -302,6 +305,67 @@ recruiterRouter.patch(
       res
         .status(500)
         .json({ message: "Something went wrong!", error: err.message });
+    }
+  },
+);
+
+// API route to upload logo
+
+recruiterRouter.patch(
+  "/recruiter/profile/logo",
+  userAuth,
+  authorize("recruiter"),
+  upload.single("logo"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+      const recruiter = await Recruiter.findOne({ user: loggedInUser._id });
+      if (!recruiter) {
+        if (req.file?.path) fs.unlinkSync(req.file.path);
+
+        return res.status(404).json({
+          message: "Recruiter profile not found!",
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          message: "Please upload a logo.",
+        });
+      }
+      const allowedTypes = ["image/jpeg", "image/png"];
+
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        fs.unlinkSync(req.file.path);
+
+        return res.status(400).json({
+          message: "Only JPG and PNG images are allowed.",
+        });
+      }
+
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "talenthub/recruiters/logos",
+      });
+
+      fs.unlinkSync(req.file.path);
+
+      recruiter.companyLogo = result.secure_url;
+
+      await recruiter.save();
+
+      res.status(200).json({
+        message: "Company logo uploaded successfully!",
+        companyLogo: recruiter.companyLogo,
+      });
+    } catch (err) {
+      if (req.file?.path) {
+        fs.unlinkSync(req.file.path);
+      }
+
+      res.status(500).json({
+        message: "Something went wrong!",
+        error: err.message,
+      });
     }
   },
 );

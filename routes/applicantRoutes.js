@@ -5,6 +5,9 @@ const Job = require("../models/Jobs");
 const Bookmark = require("../models/Bookmarks");
 const Application = require("../models/Application");
 const Applicant = require("../models/Applicant");
+const upload = require("../middleware/upload");
+const fs = require("fs");
+const cloudinary = require("../config/cloudinary");
 const applicantRouter = express.Router();
 
 // API route to browse jobs
@@ -272,6 +275,132 @@ applicantRouter.patch(
         .json({ message: "Profile updated successfully!", applicant });
     } catch (err) {
       return res.status(500).json({
+        message: "Something went wrong!",
+        error: err.message,
+      });
+    }
+  },
+);
+
+// API route for updating photo
+applicantRouter.patch(
+  "/applicant/profile/photo",
+  userAuth,
+  authorize("applicant"),
+  upload.single("photo"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+      const applicant = await Applicant.findOne({ user: loggedInUser._id });
+      if (!applicant) {
+        if (req.file?.path) fs.unlinkSync(req.file.path);
+
+        return res.status(404).json({
+          message: "Applicant profile not found!",
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          message: "Please upload a photo.",
+        });
+      }
+      const allowedTypes = ["image/jpeg", "image/png"];
+
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        fs.unlinkSync(req.file.path);
+
+        return res.status(400).json({
+          message: "Only JPG and PNG images are allowed.",
+        });
+      }
+
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "talenthub/applicants/photos",
+      });
+
+      fs.unlinkSync(req.file.path);
+
+      applicant.photo = result.secure_url;
+
+      await applicant.save();
+
+      res.status(200).json({
+        message: "Profile photo uploaded successfully!",
+        photo: applicant.photo,
+      });
+    } catch (err) {
+      if (req.file?.path) {
+        fs.unlinkSync(req.file.path);
+      }
+
+      res.status(500).json({
+        message: "Something went wrong!",
+        error: err.message,
+      });
+    }
+  },
+);
+
+// API route for updating resume
+
+applicantRouter.patch(
+  "/applicant/profile/resume",
+  userAuth,
+  authorize("applicant"),
+  upload.single("resume"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+      const applicant = await Applicant.findOne({ user: loggedInUser._id });
+      if (!applicant) {
+        if (req.file?.path) fs.unlinkSync(req.file.path);
+
+        return res.status(404).json({
+          message: "Applicant profile not found!",
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          message: "Please upload resume.",
+        });
+      }
+      const allowedTypes = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ];
+
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        fs.unlinkSync(req.file.path);
+
+        return res.status(400).json({
+          message: "Only PDF,DOC and DOCX are allowed.",
+        });
+      }
+
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "talenthub/applicants/resumes",
+        resource_type: "raw",
+      });
+
+      fs.unlinkSync(req.file.path);
+
+      applicant.resume = result.secure_url;
+
+      await applicant.save();
+
+      res.status(200).json({
+        message: "Resume uploaded successfully!",
+        resume: applicant.resume,
+      });
+    } catch (err) {
+      if (req.file?.path) {
+        fs.unlinkSync(req.file.path);
+      }
+
+      res.status(500).json({
         message: "Something went wrong!",
         error: err.message,
       });
