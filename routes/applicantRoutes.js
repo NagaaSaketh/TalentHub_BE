@@ -3,7 +3,7 @@ const userAuth = require("../middleware/auth");
 const authorize = require("../middleware/authorize");
 const Job = require("../models/Jobs");
 const Bookmark = require("../models/Bookmarks");
-const Application = require("../models/Application")
+const Application = require("../models/Application");
 const applicantRouter = express.Router();
 
 // API route to browse jobs

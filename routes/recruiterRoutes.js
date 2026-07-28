@@ -3,6 +3,7 @@ const recruiterRouter = express.Router();
 const userAuth = require("../middleware/auth");
 const authorize = require("../middleware/authorize");
 const Job = require("../models/Jobs");
+const Application = require("../models/Application");
 
 // API route to create a job
 
@@ -137,5 +138,130 @@ recruiterRouter.put(
   },
 );
 
+// API route to view all applicants for a job
+
+recruiterRouter.get(
+  "/jobs/:id/applicants",
+  userAuth,
+  authorize("recruiter"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+      const jobId = req.params.id;
+      const job = await Job.findOne({
+        _id: jobId,
+        recruiter: loggedInUser._id,
+      });
+      if (!job) {
+        return res.status(404).json({ message: "No job found!" });
+      }
+      const jobApplications = await Application.find({ job: jobId }).populate(
+        "applicant",
+        "fullname email",
+      );
+      if (jobApplications.length === 0) {
+        res.status(404).json({ message: "No applicants found for this job" });
+      }
+      res.status(200).json(jobApplications);
+    } catch (err) {
+      res
+        .status(500)
+        .json({ message: "Something went wrong!", error: err.message });
+    }
+  },
+);
+
+// API route to shortlist an application
+
+recruiterRouter.put(
+  "/applications/:applicationId/shortlist",
+  userAuth,
+  authorize("recruiter"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+      const applicationId = req.params.applicationId;
+      const application = await Application.findById(applicationId).populate(
+        "job",
+        "recruiter",
+      );
+      if (!application) {
+        return res.status(404).json({ message: "Application not found!" });
+      }
+
+      if (
+        application.job.recruiter.toString() !== loggedInUser._id.toString()
+      ) {
+        return res.status(403).json({
+          message:
+            "You are not authorised to shortlist the applicants for this job",
+        });
+      }
+
+      if (application.status === "Withdrawn") {
+        return res.status(400).json({
+          message: "Cannot shortlist a withdrawn application.",
+        });
+      }
+
+      application.status = "Shortlisted";
+
+      application.status = "Shortlisted";
+      await application.save();
+      res
+        .status(200)
+        .json({ message: "Applicant shortlisted successfully!", application });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ message: "Something went wrong!", error: err.message });
+    }
+  },
+);
+
+// API route to reject an application
+
+recruiterRouter.put(
+  "/applications/:applicationId/reject",
+  userAuth,
+  authorize("recruiter"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+      const applicationId = req.params.applicationId;
+      const application = await Application.findById(applicationId).populate(
+        "job",
+        "recruiter",
+      );
+      if (!application) {
+        return res.status(404).json({ message: "Application not found!" });
+      }
+
+      if (
+        application.job.recruiter.toString() !== loggedInUser._id.toString()
+      ) {
+        return res.status(403).json({
+          message: "You are not authorised to reject applicants for this job",
+        });
+      }
+
+      if (application.status === "Withdrawn") {
+        return res.status(400).json({
+          message: "Cannot reject a withdrawn application.",
+        });
+      }
+
+      application.status = "Rejected";
+      await application.save();
+      res
+        .status(200)
+        .json({ message: "Applicant rejected successfully!", application });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ message: "Something went wrong!", error: err.message });
+    }
+  },
+);
 
 module.exports = recruiterRouter;
