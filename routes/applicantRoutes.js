@@ -330,7 +330,9 @@ applicantRouter.patch(
       if (education !== undefined) applicant.education = education;
       if (experience !== undefined) applicant.experience = experience;
       if (location !== undefined) applicant.location = location;
-      if (skills !== undefined) applicant.skills = skills;
+      if (skills !== undefined) {
+        applicant.skills = Array.isArray(skills) ? skills : JSON.parse(skills);
+      }
       await applicant.save();
       res
         .status(200)

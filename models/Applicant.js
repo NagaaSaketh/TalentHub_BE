@@ -21,6 +21,10 @@ const applicantSchema = new mongoose.Schema(
         year: Number,
       },
     ],
+    totalExperience: {
+      type: Number,
+      default: 0,
+    },
     experience: [
       {
         company: String,

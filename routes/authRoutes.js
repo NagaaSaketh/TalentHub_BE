@@ -6,80 +6,122 @@ const userAuth = require("../middleware/auth");
 const User = require("../models/User");
 const Applicant = require("../models/Applicant");
 const Recruiter = require("../models/Recruiter");
+const upload = require("../middleware/upload");
+const cloudinary = require("../config/cloudinary");
+const fs = require("fs");
 
 // API route to register
 
-authRouter.post("/register", async (req, res) => {
-  try {
-    const {
-      fullname,
-      email,
-      password,
-      role,
-      education,
-      experience,
-      bio,
-      photo,
-      resume,
-      skills,
-      location,
-      companyName,
-      companyLogo,
-      website,
-      aboutCompany,
-    } = req.body;
+authRouter.post(
+  "/register",
+  upload.fields([
+    { name: "resume", maxCount: 1 },
+    { name: "companyLogo", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    try {
+      const {
+        fullname,
+        email,
+        password,
+        role,
+        education,
+        totalExperience,
+        experience,
+        skills,
+        location,
+        companyName,
+        website,
+        aboutCompany,
+      } = req.body;
 
-    if (!fullname || !email || !password || !role) {
-      return res.status(400).json({
-        message: "Fullname , email , password and role are required!",
+      if (!fullname || !email || !password || !role) {
+        return res.status(400).json({
+          message: "Fullname , email , password and role are required!",
+        });
+      }
+
+      const existingUser = await User.findOne({ email });
+
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already exists!" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const user = new User({
+        fullname,
+        email,
+        password: hashedPassword,
+        role,
       });
+
+      await user.save();
+
+      let companyLogoUrl = "";
+
+      if (req.files?.companyLogo) {
+        const result = await cloudinary.uploader.upload(
+          req.files.companyLogo[0].path,
+          {
+            folder: "talenthub/recruiters/logos",
+          },
+        );
+
+        fs.unlinkSync(req.files.companyLogo[0].path);
+
+        companyLogoUrl = result.secure_url;
+      }
+
+      let resumeUrl = "";
+
+      if (req.files?.resume) {
+        const result = await cloudinary.uploader.upload(
+          req.files.resume[0].path,
+          {
+            folder: "talenthub/applicants/resumes",
+            resource_type: "raw",
+          },
+        );
+
+        fs.unlinkSync(req.files.resume[0].path);
+
+        resumeUrl = result.secure_url;
+      }
+
+      if (role === "applicant") {
+        await Applicant.create({
+          user: user._id,
+          education: [],
+          totalExperience: Number(totalExperience) || 0,
+          experience: [],
+          bio: "",
+          skills: skills ? JSON.parse(skills) : [],
+          resume: resumeUrl,
+          location: location || "",
+        });
+      }
+
+      if (role === "recruiter") {
+        await Recruiter.create({
+          user: user._id,
+          companyName: companyName || "",
+          companyLogo: companyLogoUrl,
+          website: website || "",
+          aboutCompany: aboutCompany || "",
+        });
+      }
+      res
+        .status(201)
+        .json({ message: "User registration successfully!", user });
+    } catch (err) {
+      console.error(err);
+      res
+        .status(500)
+        .json({ message: "Something went wrong!", error: err.message });
     }
-
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
-      return res.status(400).json({ message: "Email already exists!" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = new User({
-      fullname,
-      email,
-      password: hashedPassword,
-      role,
-    });
-
-    await user.save();
-
-    if (role === "applicant") {
-      await Applicant.create({
-        user: user._id,
-        education: education || "",
-        experience: experience || "",
-        bio: bio || "",
-        skills: skills || [],
-        resume: resume || "",
-        location: location || "",
-      });
-    }
-
-    if (role === "recruiter") {
-      await Recruiter.create({
-        user: user._id,
-        companyName: companyName || "",
-        companyLogo: companyLogo || "",
-        website: website || "",
-        aboutCompany: aboutCompany || "",
-      });
-    }
-    res.status(201).json({ message: "User registration successfully!", user });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Something went wrong!", error: err.message });
-  }
-});
+  },
+);
 
 // API route to login
 
