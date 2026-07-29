@@ -7,7 +7,7 @@ const User = require("../models/User");
 const Applicant = require("../models/Applicant");
 const Recruiter = require("../models/Recruiter");
 
-// API route to register 
+// API route to register
 
 authRouter.post("/register", async (req, res) => {
   try {
@@ -29,6 +29,12 @@ authRouter.post("/register", async (req, res) => {
       aboutCompany,
     } = req.body;
 
+    if (!fullname || !email || !password || !role) {
+      return res.status(400).json({
+        message: "Fullname , email , password and role are required!",
+      });
+    }
+
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -49,21 +55,22 @@ authRouter.post("/register", async (req, res) => {
     if (role === "applicant") {
       await Applicant.create({
         user: user._id,
-        education,
-        experience,
-        skills,
-        resume,
-        location,
+        education: education || "",
+        experience: experience || "",
+        bio: bio || "",
+        skills: skills || [],
+        resume: resume || "",
+        location: location || "",
       });
     }
 
     if (role === "recruiter") {
       await Recruiter.create({
         user: user._id,
-        companyName,
-        companyLogo,
-        website,
-        aboutCompany,
+        companyName: companyName || "",
+        companyLogo: companyLogo || "",
+        website: website || "",
+        aboutCompany: aboutCompany || "",
       });
     }
     res.status(201).json({ message: "User registration successfully!", user });
@@ -104,7 +111,6 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
-
 // API route to logout
 authRouter.post("/logout", userAuth, (req, res) => {
   res.clearCookie("token");
@@ -117,16 +123,16 @@ authRouter.get("/me", userAuth, async (req, res) => {
   try {
     let profile = null;
 
-    if(req.user.role === "applicant"){
-      profile = await Applicant.findOne({user:req.user._id})
-    }else if(req.user.role === "recruiter"){
-      profile = await Recruiter.findOne({user:req.user._id})
+    if (req.user.role === "applicant") {
+      profile = await Applicant.findOne({ user: req.user._id });
+    } else if (req.user.role === "recruiter") {
+      profile = await Recruiter.findOne({ user: req.user._id });
     }
 
     res.status(200).json({
       message: "User authenticated!",
       user: req.user,
-      profile
+      profile,
     });
   } catch (err) {
     res.status(500).json({
