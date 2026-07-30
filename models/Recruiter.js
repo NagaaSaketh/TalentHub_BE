@@ -6,6 +6,9 @@ const recruiterSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  designation: {
+    type: String,
+  },
   companyName: {
     type: String,
   },
@@ -20,6 +23,6 @@ const recruiterSchema = new mongoose.Schema({
   },
 });
 
-const Recruiter = mongoose.model('Recruiter',recruiterSchema)
+const Recruiter = mongoose.model("Recruiter", recruiterSchema);
 
 module.exports = Recruiter;

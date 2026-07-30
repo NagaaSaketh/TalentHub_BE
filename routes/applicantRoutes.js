@@ -5,6 +5,7 @@ const Job = require("../models/Jobs");
 const Bookmark = require("../models/Bookmarks");
 const Application = require("../models/Application");
 const Applicant = require("../models/Applicant");
+const Recruiter = require("../models/Recruiter");
 const upload = require("../middleware/upload");
 const fs = require("fs");
 const cloudinary = require("../config/cloudinary");
@@ -106,6 +107,14 @@ applicantRouter.get(
         "fullname email",
       );
 
+      const recruiterProfile = await Recruiter.findOne({
+        user: job.recruiter._id,
+      }).select("designation companyName website logo");
+
+      const applicantsCount = await Application.countDocuments({
+        job: jobId,
+      });
+
       if (!job) {
         return res.status(404).json({
           message: "Job not found!",
@@ -118,15 +127,28 @@ applicantRouter.get(
         isArchived: false,
       }).limit(5);
 
+      const applicant = await Applicant.findOne({
+        user: loggedInUser._id,
+      });
+
+      if (!applicant) {
+        return res.status(404).json({
+          message: "Applicant not found!",
+        });
+      }
+
       const existingApplication = await Application.findOne({
-        applicant: loggedInUser._id,
+        applicant: applicant._id,
         job: jobId,
+        status: { $ne: "Withdrawn" },
       });
 
       return res.status(200).json({
         job,
+        recruiterProfile,
         similarJobs,
         hasApplied: !!existingApplication,
+        applicantsCount,
       });
     } catch (err) {
       return res.status(500).json({
@@ -238,6 +260,16 @@ applicantRouter.post(
       });
 
       if (existingApplication) {
+        if (existingApplication.status === "Withdrawn") {
+          existingApplication.status = "Applied";
+          await existingApplication.save();
+
+          return res.status(200).json({
+            message: "Application submitted successfully!",
+            application: existingApplication,
+          });
+        }
+
         return res.status(409).json({
           message: "You have already applied for this job.",
         });
@@ -262,44 +294,29 @@ applicantRouter.post(
   },
 );
 
-// API route to withdraw an application
+// API route to get all the applied applications
 
-applicantRouter.put(
-  "/applications/:applicationId/withdraw",
+applicantRouter.get(
+  "/applications",
   userAuth,
   authorize("applicant"),
   async (req, res) => {
     try {
-      const loggedInUser = req.user;
-      const applicationId = req.params.applicationId;
       const applicant = await Applicant.findOne({
-        user: loggedInUser._id,
+        user: req.user._id,
       });
+
       if (!applicant) {
-        return res.status(404).json({ message: "No applicant found!" });
+        return res.status(404).json({
+          message: "Applicant not found!",
+        });
       }
 
-      const application = await Application.findOne({
-        _id: applicationId,
+      const applications = await Application.find({
         applicant: applicant._id,
-      });
+      }).populate("job");
 
-      if (!application) {
-        return res.status(404).json({ message: "Application not found!" });
-      }
-
-      if (application.status === "Withdrawn") {
-        return res
-          .status(400)
-          .json({ message: "Application has already been withdrawn" });
-      }
-
-      application.status = "Withdrawn";
-      await application.save();
-
-      res
-        .status(200)
-        .json({ message: "Application withdrawn successfully", application });
+      return res.status(200).json(applications);
     } catch (err) {
       return res.status(500).json({
         message: "Something went wrong!",
@@ -309,6 +326,59 @@ applicantRouter.put(
   },
 );
 
+// API route to withdraw an application
+
+applicantRouter.put(
+  "/jobs/:jobId/withdraw",
+  userAuth,
+  authorize("applicant"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+      const jobId = req.params.jobId;
+
+      const applicant = await Applicant.findOne({
+        user: loggedInUser._id,
+      });
+
+      if (!applicant) {
+        return res.status(404).json({
+          message: "No applicant found!",
+        });
+      }
+
+      const application = await Application.findOne({
+        job: jobId,
+        applicant: applicant._id,
+      });
+
+      if (!application) {
+        return res.status(404).json({
+          message: "Application not found!",
+        });
+      }
+
+      if (application.status === "Withdrawn") {
+        return res.status(400).json({
+          message: "Application has already been withdrawn.",
+        });
+      }
+
+      application.status = "Withdrawn";
+      await application.save();
+
+      return res.status(200).json({
+        message: "Application withdrawn successfully!",
+        application,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        message: "Something went wrong!",
+        error: err.message,
+      });
+    }
+  },
+);
 // API route to edit profile
 
 applicantRouter.patch(

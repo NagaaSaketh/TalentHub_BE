@@ -286,7 +286,7 @@ recruiterRouter.patch(
   async (req, res) => {
     try {
       const loggedInUser = req.user;
-      const { companyName, website, aboutCompany } = req.body;
+      const { companyName, website, aboutCompany ,designation } = req.body;
       const recruiter = await Recruiter.findOne({ user: loggedInUser._id });
 
       if (!recruiter) {
@@ -296,6 +296,7 @@ recruiterRouter.patch(
       if (companyName !== undefined) recruiter.companyName = companyName;
       if (website !== undefined) recruiter.website = website;
       if (aboutCompany !== undefined) recruiter.aboutCompany = aboutCompany;
+      if (designation !== undefined) recruiter.designation = designation;
 
       await recruiter.save();
       res

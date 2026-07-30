@@ -43,10 +43,12 @@ const jobSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    responsibilities: {
-      type: String,
-      required: true,
-    },
+    responsibilities: [
+      {
+        type: String,
+        required: true,
+      },
+    ],
     requiredExp: {
       type: Number,
       required: true,
