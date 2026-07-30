@@ -57,6 +57,30 @@ recruiterRouter.post(
   },
 );
 
+// API route to get all jobs posted by recruiter
+
+recruiterRouter.get(
+  "/recruiter-jobs",
+  userAuth,
+  authorize("recruiter"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+
+      const jobs = await Job.find({
+        recruiter: loggedInUser._id,
+      }).sort({ createdAt: -1 });
+
+      return res.status(200).json(jobs);
+    } catch (err) {
+      return res.status(500).json({
+        message: "Something went wrong!",
+        error: err.message,
+      });
+    }
+  },
+);
+
 // API route to update job details
 
 recruiterRouter.put(
@@ -138,6 +162,59 @@ recruiterRouter.put(
       res
         .status(500)
         .json({ message: "Something went wrong!", error: err.message });
+    }
+  },
+);
+
+recruiterRouter.get(
+  "/dashboard",
+  userAuth,
+  authorize("recruiter"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+
+      const jobs = await Job.find({
+        recruiter: loggedInUser._id,
+      });
+
+      const jobIds = jobs.map((job) => job._id);
+
+      const applications = await Application.find({
+        job: { $in: jobIds },
+      })
+        .populate({
+          path: "applicant",
+          populate: {
+            path: "user",
+            select: "fullname email",
+          },
+        })
+        .populate("job", "title requiredExp")
+        .sort({ createdAt: -1 });
+
+      const activeJobs = jobs.filter((job) => !job.isArchived).length;
+
+      const archivedJobs = jobs.filter((job) => job.isArchived).length;
+
+      const shortlisted = applications.filter(
+        (app) => app.status === "Shortlisted",
+      ).length;
+
+      res.status(200).json({
+        stats: {
+          activeJobs,
+          archivedJobs,
+          totalApplications: applications.length,
+          shortlisted,
+        },
+        recentApplications: applications.slice(0, 5),
+      });
+    } catch (err) {
+      res.status(500).json({
+        message: "Something went wrong!",
+        error: err.message,
+      });
     }
   },
 );
@@ -286,7 +363,7 @@ recruiterRouter.patch(
   async (req, res) => {
     try {
       const loggedInUser = req.user;
-      const { companyName, website, aboutCompany ,designation } = req.body;
+      const { companyName, website, aboutCompany, designation } = req.body;
       const recruiter = await Recruiter.findOne({ user: loggedInUser._id });
 
       if (!recruiter) {
