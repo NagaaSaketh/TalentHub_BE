@@ -143,11 +143,17 @@ applicantRouter.get(
         status: { $ne: "Withdrawn" },
       });
 
+      const existingBookmark = await Bookmark.findOne({
+        applicant: loggedInUser._id,
+        job: jobId,
+      });
+
       return res.status(200).json({
         job,
         recruiterProfile,
         similarJobs,
         hasApplied: !!existingApplication,
+        hasBookmarked: !!existingBookmark,
         applicantsCount,
       });
     } catch (err) {
@@ -169,10 +175,15 @@ applicantRouter.post(
     try {
       const loggedInUser = req.user;
       const jobId = req.params.id;
+
       const job = await Job.findById(jobId);
+
       if (!job) {
-        return res.status(404).json({ message: "No job found!" });
+        return res.status(404).json({
+          message: "No job found!",
+        });
       }
+
       const existingBookmark = await Bookmark.findOne({
         applicant: loggedInUser._id,
         job: jobId,
@@ -180,22 +191,28 @@ applicantRouter.post(
 
       if (existingBookmark) {
         await Bookmark.findByIdAndDelete(existingBookmark._id);
-        return res
-          .status(200)
-          .json({ message: "Bookmark removed successfully" });
+
+        return res.status(200).json({
+          message: "Bookmark removed successfully",
+        });
       }
 
       const bookmark = new Bookmark({
         applicant: loggedInUser._id,
         job: jobId,
       });
+
       await bookmark.save();
 
-      res.status(201).json({ message: "Job bookmarked successful", bookmark });
+      return res.status(201).json({
+        message: "Job bookmarked successfully",
+        bookmark,
+      });
     } catch (err) {
-      res
-        .status(500)
-        .json({ message: "Something went wrong", error: err.message });
+      return res.status(500).json({
+        message: "Something went wrong",
+        error: err.message,
+      });
     }
   },
 );
