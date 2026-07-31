@@ -4,6 +4,7 @@ const authorize = require("../middleware/authorize");
 const { askAI } = require("../services/recruiterAi");
 const { generateInterviewPrep } = require("../services/applicantAi");
 const Applicant = require("../models/Applicant");
+const Application = require("../models/Application");
 const Jobs = require("../models/Jobs");
 
 const aiRouter = express.Router();
@@ -15,16 +16,27 @@ aiRouter.post(
   async (req, res) => {
     try {
       const { prompt } = req.body;
+
       if (!prompt) {
         return res.status(400).json({ message: "Prompt is required." });
       }
 
-      const applicants = await Applicant.find().populate(
-        "user",
-        "fullname email",
+      const jobs = await Jobs.find({ recruiter: req.user._id }).select(
+        "_id title company",
       );
+      const jobIds = jobs.map((job) => job._id);
 
-      const result = await askAI(prompt, applicants);
+      const applications = await Application.find({ job: { $in: jobIds } })
+        .populate({
+          path: "applicant",
+          populate: { path: "user", select: "fullname email" },
+        })
+        .populate({
+          path: "job",
+          select: "title company",
+        });
+
+      const result = await askAI(prompt, applications);
 
       if (!result.success) {
         return res.status(503).json({ message: result.error });
