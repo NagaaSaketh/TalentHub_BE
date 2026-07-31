@@ -485,8 +485,8 @@ applicantRouter.patch(
       const allowedTypes = ["image/jpeg", "image/png"];
 
       if (!allowedTypes.includes(req.file.mimetype)) {
-        if (fs.existsSync(path)) {
-          fs.unlinkSync(path);
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
         }
 
         return res.status(400).json({
@@ -498,8 +498,8 @@ applicantRouter.patch(
         folder: "talenthub/applicants/photos",
       });
 
-      if (fs.existsSync(path)) {
-        fs.unlinkSync(path);
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
       }
 
       applicant.photo = result.secure_url;
@@ -554,8 +554,8 @@ applicantRouter.patch(
       ];
 
       if (!allowedTypes.includes(req.file.mimetype)) {
-        if (fs.existsSync(path)) {
-          fs.unlinkSync(path);
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
         }
 
         return res.status(400).json({
@@ -568,8 +568,8 @@ applicantRouter.patch(
         resource_type: "raw",
       });
 
-      if (fs.existsSync(path)) {
-        fs.unlinkSync(path);
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
       }
 
       applicant.resume = result.secure_url;
