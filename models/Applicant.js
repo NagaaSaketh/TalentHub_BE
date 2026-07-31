@@ -29,7 +29,6 @@ const applicantSchema = new mongoose.Schema(
       {
         company: String,
         position: String,
-        yearsOfExp: Number,
       },
     ],
     location: {

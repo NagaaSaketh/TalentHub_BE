@@ -65,13 +65,32 @@ recruiterRouter.get(
   authorize("recruiter"),
   async (req, res) => {
     try {
-      const loggedInUser = req.user;
-
       const jobs = await Job.find({
-        recruiter: loggedInUser._id,
+        recruiter: req.user._id,
       }).sort({ createdAt: -1 });
 
-      return res.status(200).json(jobs);
+      const applicantCounts = await Application.aggregate([
+        {
+          $group: {
+            _id: "$job",
+            applicantCount: { $sum: 1 },
+          },
+        },
+      ]);
+
+      const countMap = Object.fromEntries(
+        applicantCounts.map((item) => [
+          item._id.toString(),
+          item.applicantCount,
+        ]),
+      );
+
+      const jobsWithCounts = jobs.map((job) => ({
+        ...job.toObject(),
+        applicantCount: countMap[job._id.toString()] || 0,
+      }));
+
+      return res.status(200).json(jobsWithCounts);
     } catch (err) {
       return res.status(500).json({
         message: "Something went wrong!",
@@ -166,6 +185,30 @@ recruiterRouter.put(
   },
 );
 
+// API route to get all achieve jobs
+
+recruiterRouter.get(
+  "/archived-jobs",
+  userAuth,
+  authorize("recruiter"),
+  async (req, res) => {
+    try {
+      const archivedJobs = await Job.find({
+        recruiter: req.user._id,
+        isArchived: true,
+      }).sort({ createdAt: -1 });
+
+      res.status(200).json(archivedJobs);
+    } catch (err) {
+      res.status(500).json({
+        message: "Something went wrong!",
+        error: err.message,
+      });
+    }
+  },
+);
+
+// API route to display recruiter dashboard stats
 recruiterRouter.get(
   "/dashboard",
   userAuth,
@@ -219,6 +262,45 @@ recruiterRouter.get(
   },
 );
 
+// API route to get all applications for all the jobs posted
+
+recruiterRouter.get(
+  "/job-applications",
+  userAuth,
+  authorize("recruiter"),
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+
+      const jobs = await Job.find({
+        recruiter: loggedInUser._id,
+      });
+
+      const jobIds = jobs.map((job) => job._id);
+
+      const applications = await Application.find({
+        job: { $in: jobIds },
+      })
+        .populate({
+          path: "applicant",
+          populate: {
+            path: "user",
+            select: "fullname email",
+          },
+        })
+        .populate("job", "title company")
+        .sort({ createdAt: -1 });
+
+      res.status(200).json(applications);
+    } catch (err) {
+      res.status(500).json({
+        message: "Something went wrong!",
+        error: err.message,
+      });
+    }
+  },
+);
+
 // API route to view all applicants for a job
 
 recruiterRouter.get(
@@ -262,10 +344,15 @@ recruiterRouter.put(
     try {
       const loggedInUser = req.user;
       const applicationId = req.params.applicationId;
-      const application = await Application.findById(applicationId).populate(
-        "job",
-        "recruiter",
-      );
+      const application = await Application.findById(applicationId)
+        .populate({
+          path: "applicant",
+          populate: {
+            path: "user",
+            select: "fullname email",
+          },
+        })
+        .populate("job");
       if (!application) {
         return res.status(404).json({ message: "Application not found!" });
       }
@@ -314,10 +401,15 @@ recruiterRouter.put(
     try {
       const loggedInUser = req.user;
       const applicationId = req.params.applicationId;
-      const application = await Application.findById(applicationId).populate(
-        "job",
-        "recruiter",
-      );
+      const application = await Application.findById(applicationId)
+        .populate({
+          path: "applicant",
+          populate: {
+            path: "user",
+            select: "fullname email",
+          },
+        })
+        .populate("job");
       if (!application) {
         return res.status(404).json({ message: "Application not found!" });
       }

@@ -405,7 +405,7 @@ applicantRouter.patch(
   async (req, res) => {
     try {
       const loggedInUser = req.user;
-      const { bio, education, experience, location, skills } = req.body;
+      const { bio, education, experience, location, skills ,totalExperience } = req.body;
 
       const applicant = await Applicant.findOne({ user: loggedInUser._id });
 
@@ -420,6 +420,7 @@ applicantRouter.patch(
       if (skills !== undefined) {
         applicant.skills = Array.isArray(skills) ? skills : JSON.parse(skills);
       }
+      if(totalExperience!==undefined) applicant.totalExperience = totalExperience
       await applicant.save();
       res
         .status(200)
