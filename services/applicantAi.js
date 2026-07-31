@@ -20,7 +20,7 @@ Rules:
 {
   "questions": ["string", "string", "string", "string", "string"],
   "topicsToRevise": ["string", "string", "string"],
-  "preparationTips": "string"
+  "preparationTips": ["string", "string", "string"]
 }
 `;
 

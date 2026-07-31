@@ -329,9 +329,15 @@ applicantRouter.get(
         });
       }
 
-      const applications = await Application.find({
+      const filter = {
         applicant: applicant._id,
-      }).populate("job");
+      };
+
+      if (req.query.status && req.query.status !== "All") {
+        filter.status = req.query.status;
+      }
+
+      const applications = await Application.find(filter).populate("job");
 
       return res.status(200).json(applications);
     } catch (err) {
@@ -561,7 +567,6 @@ applicantRouter.patch(
     }
   },
 );
-
 
 // API route to get applicant dashboard
 
