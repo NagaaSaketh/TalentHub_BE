@@ -159,6 +159,48 @@ authRouter.post("/logout", userAuth, (req, res) => {
   res.status(200).json({ message: "Logged out successfully!" });
 });
 
+// API route to reset password 
+authRouter.put("/forgot-password", async (req, res) => {
+  try {
+    const { email, password, confirmPassword } = req.body;
+
+    if (!email || !password || !confirmPassword) {
+      return res.status(400).json({
+        message: "Email, password and confirm password are required!",
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        message: "Passwords do not match!",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found!",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user.password = hashedPassword;
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Password reset successfully!",
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Something went wrong",
+      error: err.message,
+    });
+  }
+});
+
 // API route to get current loggedin user details
 
 authRouter.get("/me", userAuth, async (req, res) => {

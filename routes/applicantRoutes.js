@@ -20,6 +20,7 @@ applicantRouter.get(
   async (req, res) => {
     try {
       const {
+        search,
         minSalary,
         maxSalary,
         sort,
@@ -30,6 +31,23 @@ applicantRouter.get(
       } = req.query;
 
       const filter = { isArchived: false };
+
+      if (search) {
+        filter.$or = [
+          {
+            title: {
+              $regex: search,
+              $options: "i",
+            },
+          },
+          {
+            company: {
+              $regex: search,
+              $options: "i",
+            },
+          },
+        ];
+      }
 
       if (location) {
         filter.location = {
@@ -50,16 +68,15 @@ applicantRouter.get(
         filter.isRemote = isRemote === "true";
       }
 
-      if (minSalary || maxSalary) {
-        filter["salary.min"] = {};
-
-        if (minSalary) {
-          filter["salary.min"].$gte = Number(minSalary);
-        }
-
-        if (maxSalary) {
-          filter["salary.max"] = { $lte: Number(maxSalary) };
-        }
+      if (minSalary) {
+        filter["salary.min"] = {
+          $gte: Number(minSalary) * 100000,
+        };
+      }
+      if (maxSalary) {
+        filter["salary.max"] = {
+          $lte: Number(maxSalary) * 100000,
+        };
       }
       let query = Job.find(filter);
 
