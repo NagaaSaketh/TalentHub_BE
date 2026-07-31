@@ -405,7 +405,8 @@ applicantRouter.patch(
   async (req, res) => {
     try {
       const loggedInUser = req.user;
-      const { bio, education, experience, location, skills ,totalExperience } = req.body;
+      const { bio, education, experience, location, skills, totalExperience } =
+        req.body;
 
       const applicant = await Applicant.findOne({ user: loggedInUser._id });
 
@@ -420,7 +421,8 @@ applicantRouter.patch(
       if (skills !== undefined) {
         applicant.skills = Array.isArray(skills) ? skills : JSON.parse(skills);
       }
-      if(totalExperience!==undefined) applicant.totalExperience = totalExperience
+      if (totalExperience !== undefined)
+        applicant.totalExperience = totalExperience;
       await applicant.save();
       res
         .status(200)
@@ -552,6 +554,66 @@ applicantRouter.patch(
         fs.unlinkSync(req.file.path);
       }
 
+      res.status(500).json({
+        message: "Something went wrong!",
+        error: err.message,
+      });
+    }
+  },
+);
+
+
+// API route to get applicant dashboard
+
+applicantRouter.get(
+  "/applicant-dashboard",
+  userAuth,
+  authorize("applicant"),
+  async (req, res) => {
+    try {
+      const applicant = await Applicant.findOne({
+        user: req.user._id,
+      });
+
+      if (!applicant) {
+        return res.status(404).json({
+          message: "Applicant not found!",
+        });
+      }
+
+      const applications = await Application.find({
+        applicant: applicant._id,
+      })
+        .populate("job", "title company createdAt")
+        .sort({ updatedAt: -1 });
+
+      const bookmarks = await Bookmark.find({
+        applicant: req.user._id,
+      }).populate("job", "title company salary location");
+
+      const recommendedJobs = await Job.find({
+        isArchived: false,
+        _id: {
+          $nin: applications.map((app) => app.job._id),
+        },
+      })
+        .sort({ createdAt: -1 })
+        .limit(5);
+
+      res.status(200).json({
+        stats: {
+          appliedJobs: applications.length,
+          shortlisted: applications.filter(
+            (app) => app.status === "Shortlisted",
+          ).length,
+          rejected: applications.filter((app) => app.status === "Rejected")
+            .length,
+          bookmarked: bookmarks.length,
+        },
+        recentActivity: applications.slice(0, 5),
+        recommendedJobs,
+      });
+    } catch (err) {
       res.status(500).json({
         message: "Something went wrong!",
         error: err.message,
