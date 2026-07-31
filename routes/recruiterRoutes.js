@@ -489,9 +489,15 @@ recruiterRouter.patch(
   async (req, res) => {
     try {
       const loggedInUser = req.user;
-      const recruiter = await Recruiter.findOne({ user: loggedInUser._id });
+
+      const recruiter = await Recruiter.findOne({
+        user: loggedInUser._id,
+      });
+
       if (!recruiter) {
-        if (req.file?.path) fs.unlinkSync(req.file.path);
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
 
         return res.status(404).json({
           message: "Recruiter profile not found!",
@@ -503,11 +509,12 @@ recruiterRouter.patch(
           message: "Please upload a logo.",
         });
       }
+
       const allowedTypes = ["image/jpeg", "image/png"];
 
       if (!allowedTypes.includes(req.file.mimetype)) {
-        if (fs.existsSync(path)) {
-          fs.unlinkSync(path);
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
         }
 
         return res.status(400).json({
@@ -519,8 +526,8 @@ recruiterRouter.patch(
         folder: "talenthub/recruiters/logos",
       });
 
-      if (fs.existsSync(path)) {
-        fs.unlinkSync(path);
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
       }
 
       recruiter.companyLogo = result.secure_url;
@@ -532,7 +539,7 @@ recruiterRouter.patch(
         companyLogo: recruiter.companyLogo,
       });
     } catch (err) {
-      if (req.file?.path) {
+      if (req.file?.path && fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
 
