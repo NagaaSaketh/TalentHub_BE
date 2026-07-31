@@ -506,7 +506,9 @@ recruiterRouter.patch(
       const allowedTypes = ["image/jpeg", "image/png"];
 
       if (!allowedTypes.includes(req.file.mimetype)) {
-        fs.unlinkSync(req.file.path);
+        if (fs.existsSync(path)) {
+          fs.unlinkSync(path);
+        }
 
         return res.status(400).json({
           message: "Only JPG and PNG images are allowed.",
@@ -517,7 +519,9 @@ recruiterRouter.patch(
         folder: "talenthub/recruiters/logos",
       });
 
-      fs.unlinkSync(req.file.path);
+      if (fs.existsSync(path)) {
+        fs.unlinkSync(path);
+      }
 
       recruiter.companyLogo = result.secure_url;
 

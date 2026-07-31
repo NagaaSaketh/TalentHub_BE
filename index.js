@@ -13,12 +13,13 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL,
     credentials: true,
   }),
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use("/", authRouter);
@@ -32,7 +33,7 @@ app.get("/", (req, res) => {
   res.send("Talent Hub - Backend.");
 });
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () =>
   console.log("Server is running on", PORT || process.env.PORT),
 );

@@ -485,7 +485,9 @@ applicantRouter.patch(
       const allowedTypes = ["image/jpeg", "image/png"];
 
       if (!allowedTypes.includes(req.file.mimetype)) {
-        fs.unlinkSync(req.file.path);
+        if (fs.existsSync(path)) {
+          fs.unlinkSync(path);
+        }
 
         return res.status(400).json({
           message: "Only JPG and PNG images are allowed.",
@@ -496,7 +498,9 @@ applicantRouter.patch(
         folder: "talenthub/applicants/photos",
       });
 
-      fs.unlinkSync(req.file.path);
+      if (fs.existsSync(path)) {
+        fs.unlinkSync(path);
+      }
 
       applicant.photo = result.secure_url;
 
@@ -550,7 +554,9 @@ applicantRouter.patch(
       ];
 
       if (!allowedTypes.includes(req.file.mimetype)) {
-        fs.unlinkSync(req.file.path);
+        if (fs.existsSync(path)) {
+          fs.unlinkSync(path);
+        }
 
         return res.status(400).json({
           message: "Only PDF,DOC and DOCX are allowed.",
@@ -562,7 +568,9 @@ applicantRouter.patch(
         resource_type: "raw",
       });
 
-      fs.unlinkSync(req.file.path);
+      if (fs.existsSync(path)) {
+        fs.unlinkSync(path);
+      }
 
       applicant.resume = result.secure_url;
 
